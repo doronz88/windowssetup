@@ -1,15 +1,12 @@
 import logging
 import os
-import shutil
 import sys
-from functools import partial
 from pathlib import Path
 from typing import Callable, List
 
 import click
 import coloredlogs
 import inquirer3
-import requests
 from plumbum import ProcessExecutionError, local
 from plumbum.commands.base import BoundCommand
 
@@ -22,7 +19,7 @@ VSCODE_EXTENSION_IDS = [
     'qingpeng.common-lisp', 'github.vscode-github-actions', 'eamodio.gitlens', 'ms-python.isort', 'mattn.Lisp',
     'zhuangtongfa.material-theme', 'ms-python.vscode-pylance', 'ms-python.python', 'infosec-intern.yara',
     'ms-vscode.vscode-typescript-next']
-VSCODE_SETTINGS_FILE = Path('~/Library/Application Support/Code/User/settings.json').expanduser()
+VSCODE_SETTINGS_FILE = Path('~/AppData/Roaming/Code/User/settings.json').expanduser()
 
 VSCODE_DEFAULT_SETTINGS = """
 {
@@ -70,7 +67,7 @@ VSCODE_DEFAULT_SETTINGS = """
 }
 """
 
-winget = local['winget']
+cmd = local['cmd']
 python3 = local[sys.executable]
 git = local['git']
 
@@ -110,7 +107,11 @@ def install_winget_packages(disable: List[str]):
     logger.info('installing winget packages')
 
     for package in ['difftastic', ]:
-        confirm_install(f'install {package}', winget['install', package])
+        try:
+            confirm_install(f'install {package}', cmd['/c', f'winget install {package}'])
+        except ProcessExecutionError as e:
+            if 'Found an existing package already installed.' not in e.stdout:
+                raise
 
 
 def install_python_packages():
@@ -119,10 +120,10 @@ def install_python_packages():
     confirm_install('upgrade pip', python3['-m', 'pip', 'install', '-U', 'pip'])
     confirm_install('install pipx', python3['-m', 'pip', 'install', '-U', 'pipx'])
 
-    python_packages = ['pymobiledevice3', 'harlogger', 'cfprefsmon', 'pychangelog2']
+    python_packages = ['pymobiledevice3', 'harlogger', 'cfprefsmon', 'pychangelog2', 'isort', 'flake8']
 
     for package in python_packages:
-        confirm_install(f'install {package}', python3['-m', 'pip', 'install', '-U', package])
+        confirm_install(f'install {package}', python3['-m', 'pipx', 'install', package])
 
 
 def install_xonsh():
@@ -140,7 +141,11 @@ def install_xonsh():
     # required by the global xonshrc
     python3('-m', 'pipx', 'runpip', 'xonsh', 'install', '-U', 'pygments', 'plumbum')
 
-    confirm_install('install/reinstall fzf', winget['install', 'fzf'])
+    try:
+        confirm_install('install/reinstall fzf', cmd['/c', 'winget', 'install', 'fzf'])
+    except ProcessExecutionError as e:
+        if 'Found an existing package already installed.' not in e.stdout:
+            raise
 
     def set_xonshrc():
         DEV_PATH.mkdir(parents=True, exist_ok=True)
@@ -159,7 +164,7 @@ def overwrite_vscode_settings_file() -> None:
 def configure_vscode() -> None:
     logger.info('configuring vscode')
     for ext_id in VSCODE_EXTENSION_IDS:
-        local['code']('--install-extension', ext_id)
+        local['cmd']('/c', 'code', '--install-extension', ext_id)
 
     confirm_install('overwrite vscode settings file', overwrite_vscode_settings_file)
 
@@ -184,19 +189,10 @@ def cli():
     pass
 
 
-
-@cli.command('brew-packages', cls=BaseCommand)
-@click.option('-d', '--disable', multiple=True)
-def cli_brew_packages(disable: List[str]):
-    """ Install selected brew packages """
-    install_winget_packages(disable)
-
-
 @cli.command('python-packages', cls=BaseCommand)
 def cli_python_packages():
     """ Install selected python packages """
     install_python_packages()
-
 
 
 @cli.command('xonsh', cls=BaseCommand)
