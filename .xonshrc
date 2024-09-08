@@ -6,6 +6,7 @@ import json
 import time
 import tempfile
 import plistlib
+import subprocess
 from datetime import datetime
 from uuid import UUID
 from argparse import ArgumentParser
@@ -83,6 +84,8 @@ def _pretty_json(buf, colored=True, default=_default_json_encoder):
     else:
         return formatted_json
 
+def _subprocess(args: List[str]) -> None:
+    subprocess.Popen(args, shell=True)
 
 @unthreadable
 def _ggpush(args):
@@ -178,6 +181,18 @@ def _rcpull(args):
     cp .xonshrc ~/
     cd -
 
+
+def _pycharm(args):
+    if 1 != os.system('where pycharm.rc >nul 2>&1'):
+        _subprocess(["pycharm.rc", args[0]])
+    elif 1 != os.system('where pycharm >nul 2>&1'):
+        _subprocess(["pycharm", args[0]])
+
+
+def _webstorm(args):
+    if 1 != os.system('where webstorm >nul 2>&1'):
+        _subprocess(["webstorm", args[0]])
+
 # -- xonsh
 
 XSH.aliases['open'] = 'explorer'
@@ -195,6 +210,11 @@ XSH.aliases['glog'] = 'git log --oneline --decorate --graph'
 XSH.aliases['gd'] = 'git diff'
 XSH.aliases['gst'] = 'git status'
 XSH.aliases['gcl'] = 'git clone --recurse-submodules'
+
+# -- apps
+
+aliases['ws'] = _webstorm
+aliases['charm'] = _pycharm
 
 # -- shell
 
