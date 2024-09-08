@@ -106,7 +106,7 @@ def git_clone(repo_url: str, branch='master'):
 def install_winget_packages(disable: List[str]):
     logger.info('installing winget packages')
 
-    for package in ['difftastic', 'coreutils', 'Microsoft.VisualStudioCode']:
+    for package in ['difftastic', 'coreutils', 'Microsoft.VisualStudioCode', 'BurntSushi.ripgrep.MSVC', 'gnuwin32.grep']:
         try:
             confirm_install(f'install {package}', cmd['/c', f'winget install {package}'])
         except ProcessExecutionError as e:
