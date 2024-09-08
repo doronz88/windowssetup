@@ -106,7 +106,7 @@ def git_clone(repo_url: str, branch='master'):
 def install_winget_packages(disable: List[str]):
     logger.info('installing winget packages')
 
-    for package in ['difftastic', ]:
+    for package in ['difftastic', 'coreutils', 'Microsoft.VisualStudioCode']:
         try:
             confirm_install(f'install {package}', cmd['/c', f'winget install {package}'])
         except ProcessExecutionError as e:
@@ -151,7 +151,7 @@ def install_xonsh():
         DEV_PATH.mkdir(parents=True, exist_ok=True)
 
         os.chdir(DEV_PATH)
-        git_clone('git@github.com:doronz88/windowssetup.git', 'main')
+        git_clone('git@github.com:doronz88/windowssetup.git', 'master')
         Path('~/.xonshrc').expanduser().write_bytes((Path(__file__).parent / 'worksetup/.xonshrc').read_bytes())
 
     confirm_install('set ready-made .xonshrc file', set_xonshrc)
