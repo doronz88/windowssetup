@@ -1,0 +1,194 @@
+# -- modules
+
+import os
+import shlex
+import json
+import time
+import tempfile
+import plistlib
+from datetime import datetime
+from uuid import UUID
+from argparse import ArgumentParser
+from typing import List
+
+from pathlib import Path
+from pygments import highlight, formatters, lexers
+from pygments.style import Style
+from pygments.token import (Comment, Error, Generic, Name, Number, Operator, String, Text, Whitespace, Keyword, Literal, Other, Punctuation)
+from plumbum import local, FG
+from plumbum.commands.processes import ProcessExecutionError
+
+from xonsh.tools import unthreadable
+from xonsh.events import events
+from xonsh.built_ins import XSH
+from xonsh.pyghooks import register_custom_pygments_style
+from xonsh.ansi_colors import register_custom_ansi_style
+from xonsh.cli_utils import ArgParserAlias, Arg, Annotated
+
+# -- XONTRIB
+if XSH.env.get('FORMATTER_DICT') is None:
+    XSH.env['FORMATTER_DICT'] = {}
+
+
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+XSH.builtins.execx('xontrib load z argcomplete coreutils fzf-completions jedi vox')
+
+XSH.env['PROMPT'] = '{env_name}{BOLD_GREEN}{user}@{hostname}{BOLD_BLUE} {cwd}{branch_color}{curr_branch: {}}{RESET} {BOLD_BLUE}{prompt_end}{RESET} '
+
+XSH.env['GIT_EXTERNAL_DIFF'] = 'difft'
+
+XSH.env['fzf_history_binding'] = "c-r"  # Ctrl+R
+XSH.env['fzf_ssh_binding'] = "c-s"      # Ctrl+S
+XSH.env['fzf_file_binding'] = "c-t"      # Ctrl+T
+XSH.env['fzf_dir_binding'] = "c-g"      # Ctrl+G
+
+# The SQLite history backend saves command immediately
+# unlike JSON backend that save the commands at the end of the session.
+XSH.env['XONSH_HISTORY_BACKEND'] = 'sqlite'
+
+# What commands are saved to the history list. By default all commands are saved.
+# * The option ‘ignoredups’ will not save the command if it matches the previous command.
+# * The option `erasedups` will remove all previous commands that matches and updates the command frequency.
+#   The minus of `erasedups` is that the history of every session becomes unrepeatable
+#   because it will have a lack of the command you repeat in another session.
+# Docs: https://xonsh.github.io/envvars.html#histcontrol
+XSH.env['HISTCONTROL'] = 'ignoredups'
+
+
+# Remove front dot in multiline input to make the code copy-pastable.
+XSH.env['MULTILINE_PROMPT'] = ' '
+
+
+# Avoid typing cd just directory path.
+# Docs: https://xonsh.github.io/envvars.html#auto-cd
+XSH.env['AUTO_CD'] = True
+
+
+def _default_json_encoder(obj):
+    if isinstance(obj, bytes):
+        return '<' + obj.hex() + '>'
+    if isinstance(obj, datetime):
+        return str(obj)
+    if isinstance(obj, UUID):
+        return str(obj)
+    raise TypeError()
+
+
+def _pretty_json(buf, colored=True, default=_default_json_encoder):
+    formatted_json = json.dumps(buf, sort_keys=True, indent=4, default=default)
+    if colored:
+        return highlight(formatted_json, lexers.JsonLexer(), formatters.TerminalTrueColorFormatter(style='stata-dark'))
+    else:
+        return formatted_json
+
+
+@unthreadable
+def _ggpush(args):
+    XSH.builtins.execx(f'git push origin {XSH.env["PROMPT_FIELDS"]["curr_branch"]()} {shlex.join(args)}')
+
+
+# -- STYLE
+
+ANSI_STYLE = {
+    'BLACK': '#282828', 'BLUE': '#458588', 'CYAN': '#689D6A', 'DEFAULT': '#D4EB98', 'GREEN': '#98971A', 'ORANGE': '#D65D0E', 'PURPLE': '#b16286', 'RED': '#CC441D', 'WHITE': '#EBDBB2', 'YELLOW': '#D79921',
+    'INTENSE_BLACK': '#665C54', 'INTENSE_BLUE': '#83A598', 'INTENSE_CYAN': '#8EC07C', 'INTENSE_GREEN': '#b8bb26', 'INTENSE_ORANGE': '#fe8019', 'INTENSE_PURPLE': '#D3869B', 'INTENSE_RED': '#fb4934', 'INTENSE_WHITE': '#FBF1F7', 'INTENSE_YELLOW': '#FA8D2F',
+}
+
+BG_COLOR = ANSI_STYLE['BLACK']
+PG_STYLE = {
+    Comment: f'{ANSI_STYLE["INTENSE_CYAN"]} italic',
+
+    Error: f'{ANSI_STYLE["RED"]} bold',
+
+    Generic: f'{ANSI_STYLE["DEFAULT"]}',
+    Generic.Deleted: f'{ANSI_STYLE["INTENSE_BLACK"]}',
+    Generic.Emph: f'{ANSI_STYLE["WHITE"]}',
+    Generic.Error: f'{ANSI_STYLE["RED"]} bold',
+    Generic.Heading: f'{ANSI_STYLE["INTENSE_WHITE"]}',
+    Generic.Inserted: f'{ANSI_STYLE["INTENSE_WHITE"]}',
+    Generic.Output: '#44475A',
+    Generic.Prompt: f'{ANSI_STYLE["WHITE"]}',
+    Generic.Strong: f'{ANSI_STYLE["WHITE"]} bold',
+    Generic.Subheading: f'{ANSI_STYLE["INTENSE_WHITE"]}',
+    Generic.Traceback: f'{ANSI_STYLE["ORANGE"]}',
+
+    Keyword: f'{ANSI_STYLE["INTENSE_RED"]}',
+    Keyword.Content: f'{ANSI_STYLE["INTENSE_RED"]}',
+    Keyword.Declaration: f'{ANSI_STYLE["INTENSE_RED"]}',
+    Keyword.Namespace: f'{ANSI_STYLE["RED"]} bold',
+    Keyword.Pseudo: f'{ANSI_STYLE["INTENSE_RED"]}',
+    Keyword.Reserved: f'{ANSI_STYLE["INTENSE_CYAN"]}',
+    Keyword.Type: f'{ANSI_STYLE["YELLOW"]}',
+
+    Literal: f'{ANSI_STYLE["INTENSE_WHITE"]}',
+    Literal.Date: f'{ANSI_STYLE["INTENSE_WHITE"]}',
+
+    Name: f'{ANSI_STYLE["INTENSE_BLUE"]}',
+    Name.Attribute: f'{ANSI_STYLE["INTENSE_CYAN"]}',
+    Name.Builtin: f'{ANSI_STYLE["INTENSE_YELLOW"]} bold',
+    Name.Builtin.Pseudo: f'{ANSI_STYLE["INTENSE_ORANGE"]}',
+    Name.Class: f'{ANSI_STYLE["INTENSE_ORANGE"]} underline',
+    Name.Constant: f'{ANSI_STYLE["PURPLE"]}',
+    Name.Decorator: f'{ANSI_STYLE["INTENSE_RED"]}',
+    Name.Entity: f'{ANSI_STYLE["INTENSE_WHITE"]}',
+    Name.Exception: f'{ANSI_STYLE["INTENSE_PURPLE"]}',
+    Name.Function: f'{ANSI_STYLE["INTENSE_CYAN"]} bold',
+    Name.Label: f'{ANSI_STYLE["INTENSE_RED"]}',
+    Name.Namespace: f'{ANSI_STYLE["INTENSE_GREEN"]}',
+    Name.Other: f'{ANSI_STYLE["WHITE"]}',
+    Name.Variable: f'{ANSI_STYLE["WHITE"]}',
+    Name.Variable.Class: f'{ANSI_STYLE["BLUE"]} italic',
+    Name.Variable.Global: f'{ANSI_STYLE["BLUE"]} italic',
+    Name.Variable.Instance: f'{ANSI_STYLE["BLUE"]} italic',
+
+    Number: f'{ANSI_STYLE["INTENSE_PURPLE"]}',
+
+    Operator: f'{ANSI_STYLE["WHITE"]}',
+    Operator.Word: f'{ANSI_STYLE["RED"]}',
+
+    Other: ANSI_STYLE['WHITE'],
+    Punctuation: ANSI_STYLE['WHITE'],
+
+    String: f'{ANSI_STYLE["INTENSE_GREEN"]}',
+
+    Text: f'{ANSI_STYLE["WHITE"]}',
+
+    Whitespace: f'{ANSI_STYLE["WHITE"]}',
+}
+
+register_custom_pygments_style('doronz', PG_STYLE, background_color=BG_COLOR)
+register_custom_ansi_style('doronz', ANSI_STYLE)
+
+XSH.env['XONSH_COLOR_STYLE'] = 'doronz'
+
+# -- env
+
+XSH.env['PIP_BREAK_SYSTEM_PACKAGES'] = 1
+
+# -- xonsh
+
+aliases['reload'] = 'source ~/.xonshrc'
+
+# -- git
+
+aliases['ga'] = 'git add'
+aliases['ggpush'] = _ggpush
+aliases['gco'] = 'git checkout'
+aliases['ggpull'] = 'git pull'
+aliases['glog'] = 'git log --oneline --decorate --graph'
+aliases['gd'] = 'git diff'
+aliases['gst'] = 'git status'
+aliases['gcl'] = 'git clone --recurse-submodules'
+
+# -- shell
+
+aliases['t'] = 'tree'
+aliases['l'] = 'ls -lah'
+aliases['la'] = 'ls -lAh'
+aliases['ll'] = 'ls -lh'
+aliases['ls'] = 'ls -FG'
+aliases['lsa'] = 'ls -lah'
+aliases['grt'] = lambda: os.chdir($(git rev-parse --show-toplevel).strip())
+
