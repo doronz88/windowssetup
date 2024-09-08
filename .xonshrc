@@ -44,14 +44,14 @@ XSH.env['fzf_ssh_binding'] = "c-s"      # Ctrl+S
 XSH.env['fzf_file_binding'] = "c-t"      # Ctrl+T
 XSH.env['fzf_dir_binding'] = "c-g"      # Ctrl+G
 
-# The SQLite history backend saves command immediately
+# The SQLite history backend saves command immediately 
 # unlike JSON backend that save the commands at the end of the session.
 XSH.env['XONSH_HISTORY_BACKEND'] = 'sqlite'
 
-# What commands are saved to the history list. By default all commands are saved.
+# What commands are saved to the history list. By default all commands are saved. 
 # * The option ‘ignoredups’ will not save the command if it matches the previous command.
-# * The option `erasedups` will remove all previous commands that matches and updates the command frequency.
-#   The minus of `erasedups` is that the history of every session becomes unrepeatable
+# * The option `erasedups` will remove all previous commands that matches and updates the command frequency. 
+#   The minus of `erasedups` is that the history of every session becomes unrepeatable 
 #   because it will have a lack of the command you repeat in another session.
 # Docs: https://xonsh.github.io/envvars.html#histcontrol
 XSH.env['HISTCONTROL'] = 'ignoredups'
@@ -61,7 +61,7 @@ XSH.env['HISTCONTROL'] = 'ignoredups'
 XSH.env['MULTILINE_PROMPT'] = ' '
 
 
-# Avoid typing cd just directory path.
+# Avoid typing cd just directory path. 
 # Docs: https://xonsh.github.io/envvars.html#auto-cd
 XSH.env['AUTO_CD'] = True
 
@@ -169,26 +169,33 @@ XSH.env['PIP_BREAK_SYSTEM_PACKAGES'] = 1
 
 # -- xonsh
 
-aliases['reload'] = 'source ~/.xonshrc'
+XSH.aliases['reload'] = 'source ~/.xonshrc'
 
 # -- git
 
-aliases['ga'] = 'git add'
-aliases['ggpush'] = _ggpush
-aliases['gco'] = 'git checkout'
-aliases['ggpull'] = 'git pull'
-aliases['glog'] = 'git log --oneline --decorate --graph'
-aliases['gd'] = 'git diff'
-aliases['gst'] = 'git status'
-aliases['gcl'] = 'git clone --recurse-submodules'
+XSH.aliases['ga'] = 'git add'
+XSH.aliases['ggpush'] = _ggpush
+XSH.aliases['gco'] = 'git checkout'
+XSH.aliases['ggpull'] = 'git pull'
+XSH.aliases['glog'] = 'git log --oneline --decorate --graph'
+XSH.aliases['gd'] = 'git diff'
+XSH.aliases['gst'] = 'git status'
+XSH.aliases['gcl'] = 'git clone --recurse-submodules'
 
 # -- shell
 
-aliases['t'] = 'tree'
-aliases['l'] = 'ls -lah'
-aliases['la'] = 'ls -lAh'
-aliases['ll'] = 'ls -lh'
-aliases['ls'] = 'ls -FG'
-aliases['lsa'] = 'ls -lah'
-aliases['grt'] = lambda: os.chdir($(git rev-parse --show-toplevel).strip())
+XSH.aliases['ls'] = 'coreutils ls -FG'
+XSH.aliases['mv'] = 'coreutils mv'
+XSH.aliases['tail'] = 'coreutils tail'
+XSH.aliases['sleep'] = 'coreutils sleep'
+XSH.aliases['cp'] = 'coreutils cp'
+XSH.aliases['mkdir'] = 'coreutils mkdir'
 
+XSH.aliases['t'] = 'tree'
+XSH.aliases['l'] = 'ls -lah'
+XSH.aliases['la'] = 'ls -lAh'
+XSH.aliases['ll'] = 'ls -lh'
+XSH.aliases['lsa'] = 'ls -lah'
+XSH.aliases['grt'] = lambda: os.chdir($(git rev-parse --show-toplevel).strip())
+
+XSH.aliases['start'] = 'cmd /c start'
