@@ -180,6 +180,7 @@ def _rcpull(args):
 
 # -- xonsh
 
+XSH.aliases['open'] = 'explorer'
 XSH.aliases['reload'] = 'source ~/.xonshrc'
 XSH.aliases['globalrc'] = 'code ~/.xonshrc'
 XSH.aliases['rcpull'] = _rcpull
