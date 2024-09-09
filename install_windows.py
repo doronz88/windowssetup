@@ -106,11 +106,17 @@ def git_clone(repo_url: str, branch='master'):
 def install_winget_packages(disable: List[str]):
     logger.info('installing winget packages')
 
-    for package in ['difftastic', 'coreutils', 'Microsoft.VisualStudioCode', 'BurntSushi.ripgrep.MSVC', 'gnuwin32.grep']:
+    existing_packages = cmd['/c', 'winget', 'list']().lower()
+    for package in ['difftastic', 'coreutils', 'Microsoft.VisualStudioCode', 'BurntSushi.ripgrep.MSVC',
+                    'gnuwin32.grep', 'chocolatey']:
         try:
+            if package in existing_packages:
+                continue
             confirm_install(f'install {package}', cmd['/c', f'winget install {package}'])
         except ProcessExecutionError as e:
-            if 'Found an existing package already installed.' not in e.stdout:
+            if package == 'chocolatey':
+                continue
+            if 'Found an existing package already installed.' not in e.stdout :
                 raise
 
 
@@ -139,7 +145,8 @@ def install_xonsh():
             'xontrib-fzf-widgets', 'xontrib-z', 'xontrib-up', 'xontrib-vox', 'xontrib-jedi')
 
     # required by the global xonshrc
-    python3('-m', 'pipx', 'runpip', 'xonsh', 'install', '-U', 'pygments', 'plumbum', 'xontrib-fzf-completions')
+    python3('-m', 'pipx', 'runpip', 'xonsh', 'install', '-U', 'pygments', 'plumbum', 'xontrib-fzf-completions',
+            'xontrib-z', 'xontrib-argcomplete', 'xontrib-fzf-completions', 'xontrib-jedi', 'xontrib-vox')
 
     try:
         confirm_install('install/reinstall fzf', cmd['/c', 'winget', 'install', 'fzf'])
@@ -152,7 +159,7 @@ def install_xonsh():
 
         os.chdir(DEV_PATH)
         git_clone('git@github.com:doronz88/windowssetup.git', 'master')
-        Path('~/.xonshrc').expanduser().write_bytes((Path(__file__).parent / 'worksetup/.xonshrc').read_bytes())
+        Path('~/.xonshrc').expanduser().write_bytes((Path(__file__).parent / '.xonshrc').read_bytes())
 
     confirm_install('set ready-made .xonshrc file', set_xonshrc)
 
