@@ -184,22 +184,22 @@ def _rcpull(args):
 
 def _pycharm(args):
     if 1 != os.system('where pycharm.rc >nul 2>&1'):
-        _subprocess(["pycharm.rc", args[0]])
+        _subprocess(['pycharm.rc', *args])
     elif 1 != os.system('where pycharm >nul 2>&1'):
-        _subprocess(["pycharm", args[0]])
+        _subprocess(['pycharm', *args])
 
 
 def _webstorm(args):
     if 1 != os.system('where webstorm >nul 2>&1'):
-        _subprocess(["webstorm", args[0]])
+        _subprocess(['webstorm', *args])
 
 def _clion(args):
     if 1 != os.system('where clion >nul 2>&1'):
-        _subprocess(["clion", args[0]])
+        _subprocess(['clion', *args])
 
 def _datagrip(args):
     if 1 != os.system('where datagrip >nul 2>&1'):
-        _subprocess(["datagrip", args[0]])
+        _subprocess(['datagrip', *args])
 
 # -- xonsh
 
