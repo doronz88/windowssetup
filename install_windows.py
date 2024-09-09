@@ -139,7 +139,7 @@ def install_xonsh():
             'xontrib-fzf-widgets', 'xontrib-z', 'xontrib-up', 'xontrib-vox', 'xontrib-jedi')
 
     # required by the global xonshrc
-    python3('-m', 'pipx', 'runpip', 'xonsh', 'install', '-U', 'pygments', 'plumbum')
+    python3('-m', 'pipx', 'runpip', 'xonsh', 'install', '-U', 'pygments', 'plumbum', 'xontrib-fzf-completions')
 
     try:
         confirm_install('install/reinstall fzf', cmd['/c', 'winget', 'install', 'fzf'])

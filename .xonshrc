@@ -6,6 +6,7 @@ import json
 import time
 import tempfile
 import plistlib
+import subprocess
 from datetime import datetime
 from uuid import UUID
 from argparse import ArgumentParser
@@ -44,14 +45,14 @@ XSH.env['fzf_ssh_binding'] = "c-s"      # Ctrl+S
 XSH.env['fzf_file_binding'] = "c-t"      # Ctrl+T
 XSH.env['fzf_dir_binding'] = "c-g"      # Ctrl+G
 
-# The SQLite history backend saves command immediately 
+# The SQLite history backend saves command immediately
 # unlike JSON backend that save the commands at the end of the session.
 XSH.env['XONSH_HISTORY_BACKEND'] = 'sqlite'
 
-# What commands are saved to the history list. By default all commands are saved. 
+# What commands are saved to the history list. By default all commands are saved.
 # * The option ‘ignoredups’ will not save the command if it matches the previous command.
-# * The option `erasedups` will remove all previous commands that matches and updates the command frequency. 
-#   The minus of `erasedups` is that the history of every session becomes unrepeatable 
+# * The option `erasedups` will remove all previous commands that matches and updates the command frequency.
+#   The minus of `erasedups` is that the history of every session becomes unrepeatable
 #   because it will have a lack of the command you repeat in another session.
 # Docs: https://xonsh.github.io/envvars.html#histcontrol
 XSH.env['HISTCONTROL'] = 'ignoredups'
@@ -61,7 +62,7 @@ XSH.env['HISTCONTROL'] = 'ignoredups'
 XSH.env['MULTILINE_PROMPT'] = ' '
 
 
-# Avoid typing cd just directory path. 
+# Avoid typing cd just directory path.
 # Docs: https://xonsh.github.io/envvars.html#auto-cd
 XSH.env['AUTO_CD'] = True
 
@@ -83,6 +84,8 @@ def _pretty_json(buf, colored=True, default=_default_json_encoder):
     else:
         return formatted_json
 
+def _subprocess(args: List[str]) -> None:
+    subprocess.Popen(args, shell=True)
 
 @unthreadable
 def _ggpush(args):
@@ -166,11 +169,36 @@ XSH.env['XONSH_COLOR_STYLE'] = 'doronz'
 # -- env
 
 XSH.env['PIP_BREAK_SYSTEM_PACKAGES'] = 1
+XSH.env['WORKSETUP_ROOT'] = '~/dev'
+
+# -- ALIAS
+
+def _rcpull(args):
+    parser = ArgumentParser(description='pull latest .xonshrc')
+    args = parser.parse_args(args)
+    cd $WORKSETUP_ROOT/windowssetup
+    ggpull
+    cp .xonshrc ~/
+    cd -
+
+
+def _pycharm(args):
+    if 1 != os.system('where pycharm.rc >nul 2>&1'):
+        _subprocess(["pycharm.rc", args[0]])
+    elif 1 != os.system('where pycharm >nul 2>&1'):
+        _subprocess(["pycharm", args[0]])
+
+
+def _webstorm(args):
+    if 1 != os.system('where webstorm >nul 2>&1'):
+        _subprocess(["webstorm", args[0]])
 
 # -- xonsh
 
+XSH.aliases['open'] = 'explorer'
 XSH.aliases['reload'] = 'source ~/.xonshrc'
 XSH.aliases['globalrc'] = 'code ~/.xonshrc'
+XSH.aliases['rcpull'] = _rcpull
 
 # -- git
 
@@ -182,6 +210,11 @@ XSH.aliases['glog'] = 'git log --oneline --decorate --graph'
 XSH.aliases['gd'] = 'git diff'
 XSH.aliases['gst'] = 'git status'
 XSH.aliases['gcl'] = 'git clone --recurse-submodules'
+
+# -- apps
+
+aliases['ws'] = _webstorm
+aliases['charm'] = _pycharm
 
 # -- shell
 
