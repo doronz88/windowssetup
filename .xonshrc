@@ -184,14 +184,22 @@ def _rcpull(args):
 
 def _pycharm(args):
     if 1 != os.system('where pycharm.rc >nul 2>&1'):
-        _subprocess(["pycharm.rc", args[0]])
+        _subprocess(['pycharm.rc', *args])
     elif 1 != os.system('where pycharm >nul 2>&1'):
-        _subprocess(["pycharm", args[0]])
+        _subprocess(['pycharm', *args])
 
 
 def _webstorm(args):
     if 1 != os.system('where webstorm >nul 2>&1'):
-        _subprocess(["webstorm", args[0]])
+        _subprocess(['webstorm', *args])
+
+def _clion(args):
+    if 1 != os.system('where clion >nul 2>&1'):
+        _subprocess(['clion', *args])
+
+def _datagrip(args):
+    if 1 != os.system('where datagrip >nul 2>&1'):
+        _subprocess(['datagrip', *args])
 
 # -- xonsh
 
@@ -213,8 +221,10 @@ XSH.aliases['gcl'] = 'git clone --recurse-submodules'
 
 # -- apps
 
-aliases['ws'] = _webstorm
-aliases['charm'] = _pycharm
+XSH.aliases['ws'] = _webstorm
+XSH.aliases['dg'] = _datagrip
+XSH.aliases['clion'] = _clion
+XSH.aliases['charm'] = _pycharm
 
 # -- shell
 
