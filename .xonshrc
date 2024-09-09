@@ -193,6 +193,14 @@ def _webstorm(args):
     if 1 != os.system('where webstorm >nul 2>&1'):
         _subprocess(["webstorm", args[0]])
 
+def _clion(args):
+    if 1 != os.system('where clion >nul 2>&1'):
+        _subprocess(["clion", args[0]])
+
+def _datagrip(args):
+    if 1 != os.system('where datagrip >nul 2>&1'):
+        _subprocess(["datagrip", args[0]])
+
 # -- xonsh
 
 XSH.aliases['open'] = 'explorer'
@@ -214,6 +222,8 @@ XSH.aliases['gcl'] = 'git clone --recurse-submodules'
 # -- apps
 
 aliases['ws'] = _webstorm
+aliases['dg'] = _datagrip
+aliases['clion'] = _clion
 aliases['charm'] = _pycharm
 
 # -- shell
