@@ -221,10 +221,10 @@ XSH.aliases['gcl'] = 'git clone --recurse-submodules'
 
 # -- apps
 
-aliases['ws'] = _webstorm
-aliases['dg'] = _datagrip
-aliases['clion'] = _clion
-aliases['charm'] = _pycharm
+XSH.aliases['ws'] = _webstorm
+XSH.aliases['dg'] = _datagrip
+XSH.aliases['clion'] = _clion
+XSH.aliases['charm'] = _pycharm
 
 # -- shell
 
