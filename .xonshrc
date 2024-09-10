@@ -30,7 +30,6 @@ from xonsh.cli_utils import ArgParserAlias, Arg, Annotated
 if XSH.env.get('FORMATTER_DICT') is None:
     XSH.env['FORMATTER_DICT'] = {}
 
-
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -91,6 +90,12 @@ def _subprocess(args: List[str]) -> None:
 def _ggpush(args):
     XSH.builtins.execx(f'git push origin {XSH.env["PROMPT_FIELDS"]["curr_branch"]()} {shlex.join(args)}')
 
+@events.on_chdir
+def handler_chdir(olddir, newdir, **kw):
+    """
+    Event handler that updates the prompt when the directory changes
+    """
+    print(f'\033]9;9;{newdir}\033\\\033[A', end='')
 
 # -- STYLE
 
