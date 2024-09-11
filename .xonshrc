@@ -187,6 +187,18 @@ def _rcpull(args):
     cd -
 
 
+def _rcpush(args):
+    parser = ArgumentParser(description='push latest .xonshrc')
+    args = parser.parse_args(args)
+
+    cd $WORKSETUP_ROOT/worksetup
+    cp ~/.xonshrc .
+    ga .xonshrc
+    git commit -m 'update .xonshrc'
+    ggpush
+    cd -
+
+
 def _pycharm(args):
     if 1 != os.system('where pycharm.rc >nul 2>&1'):
         _subprocess(['pycharm.rc', *args])
@@ -198,9 +210,11 @@ def _webstorm(args):
     if 1 != os.system('where webstorm >nul 2>&1'):
         _subprocess(['webstorm', *args])
 
+
 def _clion(args):
     if 1 != os.system('where clion >nul 2>&1'):
         _subprocess(['clion', *args])
+
 
 def _datagrip(args):
     if 1 != os.system('where datagrip >nul 2>&1'):
@@ -212,6 +226,7 @@ XSH.aliases['open'] = 'explorer'
 XSH.aliases['reload'] = 'source ~/.xonshrc'
 XSH.aliases['globalrc'] = 'code ~/.xonshrc'
 XSH.aliases['rcpull'] = _rcpull
+XSH.aliases['rcpush'] = _rcpush
 
 # -- git
 
