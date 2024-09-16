@@ -3,28 +3,20 @@
 import os
 import shlex
 import json
-import time
-import tempfile
-import plistlib
 import subprocess
 from datetime import datetime
 from uuid import UUID
 from argparse import ArgumentParser
 from typing import List
 
-from pathlib import Path
 from pygments import highlight, formatters, lexers
-from pygments.style import Style
 from pygments.token import (Comment, Error, Generic, Name, Number, Operator, String, Text, Whitespace, Keyword, Literal, Other, Punctuation)
-from plumbum import local, FG
-from plumbum.commands.processes import ProcessExecutionError
 
 from xonsh.tools import unthreadable
 from xonsh.events import events
 from xonsh.built_ins import XSH
 from xonsh.pyghooks import register_custom_pygments_style
 from xonsh.ansi_colors import register_custom_ansi_style
-from xonsh.cli_utils import ArgParserAlias, Arg, Annotated
 
 # -- XONTRIB
 if XSH.env.get('FORMATTER_DICT') is None:
