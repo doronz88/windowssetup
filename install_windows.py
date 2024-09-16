@@ -108,7 +108,8 @@ def install_winget_packages(disable: List[str]):
 
     existing_packages = cmd['/c', 'winget', 'list']().lower()
     for package in ['difftastic', 'coreutils', 'Microsoft.VisualStudioCode', 'BurntSushi.ripgrep.MSVC',
-                    'gnuwin32.grep', 'chocolatey']:
+                    'gnuwin32.grep', 'chocolatey', 'gnuwin32.tar', 'gnuwin32.zip', 'gnuwin32.unzip',
+                    'gnuwin32.findutils']:
         try:
             if package in existing_packages:
                 continue
