@@ -25,7 +25,7 @@ if XSH.env.get('FORMATTER_DICT') is None:
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-XSH.builtins.execx('xontrib load z argcomplete coreutils fzf-completions jedi vox')
+XSH.builtins.execx('xontrib load zoxide argcomplete coreutils fzf-completions jedi vox')
 
 XSH.env['PROMPT'] = '{env_name}{BOLD_GREEN}{user}@{hostname}{BOLD_BLUE} {cwd}{branch_color}{curr_branch: {}}{RESET} {BOLD_BLUE}{prompt_end}{RESET} '
 
