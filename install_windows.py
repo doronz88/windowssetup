@@ -143,7 +143,7 @@ def install_xonsh():
 
     # xontribs
     python3('-m', 'pipx', 'runpip', 'xonsh', 'install', '-U', 'xontrib-argcomplete',
-            'xontrib-fzf-widgets', 'xontrib-z', 'xontrib-up', 'xontrib-vox', 'xontrib-jedi')
+            'xontrib-fzf-widgets', 'xontrib-vox', 'xontrib-jedi')
 
     # required by the global xonshrc
     python3('-m', 'pipx', 'runpip', 'xonsh', 'install', '-U', 'pygments', 'plumbum', 'xontrib-fzf-completions',
