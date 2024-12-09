@@ -109,7 +109,7 @@ def install_winget_packages(disable: List[str]):
     existing_packages = cmd['/c', 'winget', 'list']().lower()
     for package in ['difftastic', 'coreutils', 'Microsoft.VisualStudioCode', 'BurntSushi.ripgrep.MSVC',
                     'gnuwin32.grep', 'chocolatey', 'gnuwin32.tar', 'gnuwin32.zip', 'gnuwin32.unzip',
-                    'gnuwin32.findutils']:
+                    'gnuwin32.findutils', 'ajeetdsouza.zoxide']:
         try:
             if package in existing_packages:
                 continue
@@ -147,7 +147,7 @@ def install_xonsh():
 
     # required by the global xonshrc
     python3('-m', 'pipx', 'runpip', 'xonsh', 'install', '-U', 'pygments', 'plumbum', 'xontrib-fzf-completions',
-            'xontrib-z', 'xontrib-argcomplete', 'xontrib-fzf-completions', 'xontrib-jedi', 'xontrib-vox')
+            'xontrib-argcomplete', 'xontrib-fzf-completions', 'xontrib-jedi', 'xontrib-vox', 'xontrib-zoxide')
 
     try:
         confirm_install('install/reinstall fzf', cmd['/c', 'winget', 'install', 'fzf'])
