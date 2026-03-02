@@ -251,7 +251,7 @@ def _rcpull(args) -> None:
     parser = ArgumentParser(description='pull latest .xonshrc')
     args = parser.parse_args(args)
 
-    XSH.builtins.execx("cd $WORKSETUP_ROOT/worksetup")
+    XSH.builtins.execx("cd $WORKSETUP_ROOT/windowssetup")
     XSH.builtins.execx("ggpull")
     XSH.builtins.execx("cp .xonshrc ~/")
     XSH.builtins.execx("cd -")
@@ -262,7 +262,7 @@ def _rcpush(args) -> None:
     parser = ArgumentParser(description='push latest .xonshrc')
     args = parser.parse_args(args)
 
-    XSH.builtins.execx("cd $WORKSETUP_ROOT/worksetup")
+    XSH.builtins.execx("cd $WORKSETUP_ROOT/windowssetup")
     XSH.builtins.execx("cp ~/.xonshrc .")
     XSH.builtins.execx("ga .xonshrc")
     XSH.builtins.execx("git commit -m 'update .xonshrc'")
