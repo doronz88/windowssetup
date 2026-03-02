@@ -10,10 +10,16 @@ Install winget from:
 
 <https://learn.microsoft.com/en-us/windows/package-manager/winget/>
 
-Install `python3.11`:
+Install `uv`:
 
 ```shell
-winget install Python.Python.3.11
+winget install --id=astral-sh.uv  -e
+```
+
+Install `python3.14`:
+
+```shell
+uv python install
 ```
 
 Install Git:
@@ -35,12 +41,11 @@ mkdir %userprofile%/dev
 cd %userprofile%/dev
 git clone git@github.com:doronz88/windowssetup.git
 cd windowssetup
-python3.11 -m pip install -r requirements.txt
 ```
 
 # Usage
 
 ```shell
 # pass -a/--automated for doing everything without prompting (unless certain removals are required)
-python3.11 install_windows.py everything
+uv run .\install_windows.py everything
 ```

@@ -1,40 +1,53 @@
+# XONSH WEBCONFIG START
+# XONSH WEBCONFIG END
+
 # -- modules
 
-import os
-import shlex
 import json
+import os
+import plistlib
+import shlex
+import shutil
 import subprocess
-from datetime import datetime
-from uuid import UUID
 from argparse import ArgumentParser
-from typing import List
+from datetime import datetime
+from pathlib import Path
+from uuid import UUID
 
+from plumbum import local, FG
+from plumbum.commands.processes import ProcessExecutionError
+from prompt_toolkit.application import run_in_terminal
+from prompt_toolkit.keys import Keys
 from pygments import highlight, formatters, lexers
-from pygments.token import (Comment, Error, Generic, Name, Number, Operator, String, Text, Whitespace, Keyword, Literal, Other, Punctuation)
-
-from xonsh.tools import unthreadable
-from xonsh.events import events
-from xonsh.built_ins import XSH
-from xonsh.pyghooks import register_custom_pygments_style
+from pygments.style import Style
+from pygments.token import (
+    Comment, Error, Generic, Name, Number, Operator, String, Text, Whitespace, Keyword, Literal, Other, Punctuation
+)
 from xonsh.ansi_colors import register_custom_ansi_style
+from xonsh.built_ins import XSH
+from xonsh.cli_utils import ArgParserAlias, Arg, Annotated
+from xonsh.events import events
+from xonsh.history.sqlite import SqliteHistory
+from xonsh.pyghooks import register_custom_pygments_style
+from xonsh.tools import unthreadable
 
 # -- XONTRIB
 if XSH.env.get('FORMATTER_DICT') is None:
     XSH.env['FORMATTER_DICT'] = {}
 
-import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
+CUSTOM_RC = Path('~/.myrc').expanduser()
 
-XSH.builtins.execx('xontrib load zoxide argcomplete coreutils fzf-completions jedi vox')
+# -- ENV
+XSH.env['WORKSETUP_ROOT'] = '~/dev'
 
-XSH.env['PROMPT'] = '{env_name}{BOLD_GREEN}{user}@{hostname}{BOLD_BLUE} {cwd}{branch_color}{curr_branch: {}}{RESET} {BOLD_BLUE}{prompt_end}{RESET} '
-
+XSH.env[
+    'PROMPT'] = '{env_name}{BOLD_GREEN}{user}@{hostname}{BOLD_BLUE} {cwd}{branch_color}{curr_branch: {}}{RESET} {BOLD_BLUE}{prompt_end}{RESET} '
 XSH.env['GIT_EXTERNAL_DIFF'] = 'difft'
 
 XSH.env['fzf_history_binding'] = "c-r"  # Ctrl+R
-XSH.env['fzf_ssh_binding'] = "c-s"      # Ctrl+S
-XSH.env['fzf_file_binding'] = "c-t"      # Ctrl+T
-XSH.env['fzf_dir_binding'] = "c-g"      # Ctrl+G
+XSH.env['fzf_ssh_binding'] = "c-s"  # Ctrl+S
+XSH.env['fzf_file_binding'] = "c-t"  # Ctrl+T
+XSH.env['fzf_dir_binding'] = "c-g"  # Ctrl+G
 
 # The SQLite history backend saves command immediately
 # unlike JSON backend that save the commands at the end of the session.
@@ -48,14 +61,20 @@ XSH.env['XONSH_HISTORY_BACKEND'] = 'sqlite'
 # Docs: https://xonsh.github.io/envvars.html#histcontrol
 XSH.env['HISTCONTROL'] = 'ignoredups'
 
-
 # Remove front dot in multiline input to make the code copy-pastable.
 XSH.env['MULTILINE_PROMPT'] = ' '
-
 
 # Avoid typing cd just directory path.
 # Docs: https://xonsh.github.io/envvars.html#auto-cd
 XSH.env['AUTO_CD'] = True
+
+# Finally, load all modules
+XSH.builtins.execx('xontrib load argcomplete coreutils fzf-widgets jedi')
+
+if shutil.which('zoxide'):
+    XSH.builtins.execx('xontrib load zoxide')
+else:
+    print('Could not locate zoxide in your path. Please install `brew install zoxide` first')
 
 
 def _default_json_encoder(obj):
@@ -67,39 +86,6 @@ def _default_json_encoder(obj):
         return str(obj)
     raise TypeError()
 
-def _open_github(args):
-    try:
-        import webbrowser
-        from pathlib import Path
-
-        # Ensure we're inside a Git repo
-        root = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], text=True).strip()
-        os.chdir(root)
-
-        # Get current remote URL
-        remote_url = subprocess.check_output(['git', 'remote', 'get-url', 'origin'], text=True).strip()
-
-        # Get current branch name
-        branch = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], text=True).strip()
-
-        # Parse remote URL
-        if remote_url.startswith('git@'):
-            # git@github.com:user/repo.git
-            _, path = remote_url.split(':', 1)
-            url = f'https://github.com/{path}'
-        elif remote_url.startswith('https://') or remote_url.startswith('http://'):
-            url = remote_url
-        else:
-            print(f"Unsupported remote URL: {remote_url}")
-            return
-
-        url = url.rstrip('.git')
-        url += f'/tree/{branch}'
-        webbrowser.open(url)
-    except subprocess.CalledProcessError:
-        print('Not a git repository or no remote "origin" set.')
-    except Exception as e:
-        print(f'Error: {e}')
 
 def _pretty_json(buf, colored=True, default=_default_json_encoder):
     formatted_json = json.dumps(buf, sort_keys=True, indent=4, default=default)
@@ -108,26 +94,18 @@ def _pretty_json(buf, colored=True, default=_default_json_encoder):
     else:
         return formatted_json
 
-def _subprocess(args: List[str]) -> None:
-    subprocess.Popen(args, shell=True)
 
-@unthreadable
-def _ggpush(args):
-    XSH.builtins.execx(f'git push origin {XSH.env["PROMPT_FIELDS"]["curr_branch"]()} {shlex.join(args)}')
-
-@events.on_chdir
-def handler_chdir(olddir, newdir, **kw):
-    """
-    Event handler that updates the prompt when the directory changes
-    """
-    print(f'\033]9;9;{newdir}\033\\\033[A', end='')
+for path in (r'C:\Program Files (x86)\GnuWin32\bin',):
+    if path not in XSH.env['PATH']:
+        XSH.env['PATH'].insert(0, path)
 
 # -- STYLE
 
-ANSI_STYLE = {
-    'BLACK': '#282828', 'BLUE': '#458588', 'CYAN': '#689D6A', 'DEFAULT': '#D4EB98', 'GREEN': '#98971A', 'ORANGE': '#D65D0E', 'PURPLE': '#b16286', 'RED': '#CC441D', 'WHITE': '#EBDBB2', 'YELLOW': '#D79921',
-    'INTENSE_BLACK': '#665C54', 'INTENSE_BLUE': '#83A598', 'INTENSE_CYAN': '#8EC07C', 'INTENSE_GREEN': '#b8bb26', 'INTENSE_ORANGE': '#fe8019', 'INTENSE_PURPLE': '#D3869B', 'INTENSE_RED': '#fb4934', 'INTENSE_WHITE': '#FBF1F7', 'INTENSE_YELLOW': '#FA8D2F',
-}
+ANSI_STYLE = {'BLACK': '#282828', 'BLUE': '#458588', 'CYAN': '#689D6A', 'DEFAULT': '#D4EB98', 'GREEN': '#98971A',
+              'ORANGE': '#D65D0E', 'PURPLE': '#b16286', 'RED': '#CC441D', 'WHITE': '#EBDBB2', 'YELLOW': '#D79921',
+              'INTENSE_BLACK': '#665C54', 'INTENSE_BLUE': '#83A598', 'INTENSE_CYAN': '#8EC07C',
+              'INTENSE_GREEN': '#b8bb26', 'INTENSE_ORANGE': '#fe8019', 'INTENSE_PURPLE': '#D3869B',
+              'INTENSE_RED': '#fb4934', 'INTENSE_WHITE': '#FBF1F7', 'INTENSE_YELLOW': '#FA8D2F', }
 
 BG_COLOR = ANSI_STYLE['BLACK']
 PG_STYLE = {
@@ -193,71 +171,227 @@ PG_STYLE = {
 
 register_custom_pygments_style('doronz', PG_STYLE, background_color=BG_COLOR)
 register_custom_ansi_style('doronz', ANSI_STYLE)
-
 XSH.env['XONSH_COLOR_STYLE'] = 'doronz'
 
-# -- env
+TAB_COLORS = {
+    "red": '#FF9999',
+    "green": '#99E699',
+    "blue": '#99B3FF',
+    "yellow": '#FFE599',
+    "purple": '#CC99FF',
+    "gray": '#C2C2C2',
+    "black": '#666666',
+    "orange": '#FFB899',
+    "pink": '#FFB3DE',
+    "teal": '#99E6E6',
+}
 
-XSH.env['PIP_BREAK_SYSTEM_PACKAGES'] = 1
-XSH.env['WORKSETUP_ROOT'] = '~/dev'
+
+# -- events
+
+@events.on_ptk_create
+def custom_keybindings(bindings, **kw):
+    @bindings.add(Keys.F12)
+    def restart_device(event):
+        def _run():
+            subprocess.run(
+                shlex.split("pymobiledevice3 diagnostics restart"),
+                check=False,
+            )
+            print("\nRestarting device", flush=True)
+
+        # Give the terminal to the subprocess (fixes Enter / stdin issues)
+        run_in_terminal(_run)
+        event.app.invalidate()
 
 
-for path in (r'C:\Program Files (x86)\GnuWin32\bin', ):
-    if path not in XSH.env['PATH']:
-        XSH.env['PATH'].insert(0, path)
+@events.on_transform_command
+def expand_braces(cmd, **a):
+    if '[' in cmd or '$(' in cmd or '@(' in cmd:
+        return cmd
+
+    parts = shlex.split(cmd)
+    expanded_cmds = []
+    requires_expansion = False
+
+    for part in parts:
+        if "{" in part and "}" in part:
+            prefix, braces, postfix = part.partition("{")
+            options, _, postfix = postfix.partition("}")
+            expanded_parts = [
+                prefix + option + postfix for option in options.split(",")
+            ]
+            expanded_cmds.extend(expanded_parts)
+            requires_expansion = True
+        else:
+            expanded_cmds.append(part)
+
+    if requires_expansion:
+        return " ".join(expanded_cmds)
+
+    return cmd
 
 
-# -- ALIAS
+@events.on_chdir
+def handler_chdir(olddir, newdir, **kw):
+    """
+    Event handler that updates the prompt when the directory changes
+    """
+    print(f'\033]9;9;{newdir}\033\\\033[A', end='')
 
-def _rcpull(args):
+
+# -- alias
+
+@unthreadable
+def _ggpush(args) -> None:
+    XSH.builtins.execx(f'git push origin {XSH.env["PROMPT_FIELDS"]["curr_branch"]()} {shlex.join(args)}')
+
+
+def _rcpull(args) -> None:
     parser = ArgumentParser(description='pull latest .xonshrc')
     args = parser.parse_args(args)
-    cd $WORKSETUP_ROOT/windowssetup
-    ggpull
-    cp .xonshrc ~/
-    cd -
+
+    XSH.builtins.execx("cd $WORKSETUP_ROOT/worksetup")
+    XSH.builtins.execx("ggpull")
+    XSH.builtins.execx("cp .xonshrc ~/")
+    XSH.builtins.execx("cd -")
+    XSH.builtins.execx("reload")
 
 
-def _rcpush(args):
+def _rcpush(args) -> None:
     parser = ArgumentParser(description='push latest .xonshrc')
     args = parser.parse_args(args)
 
-    cd $WORKSETUP_ROOT/worksetup
-    cp ~/.xonshrc .
-    ga .xonshrc
-    git commit -m 'update .xonshrc'
-    ggpush
-    cd -
+    XSH.builtins.execx("cd $WORKSETUP_ROOT/worksetup")
+    XSH.builtins.execx("cp ~/.xonshrc .")
+    XSH.builtins.execx("ga .xonshrc")
+    XSH.builtins.execx("git commit -m 'update .xonshrc'")
+    XSH.builtins.execx("ggpush")
+    XSH.builtins.execx("cd -")
 
 
-def _pycharm(args):
+def _plshow(filename: str, uncolored=False):
+    """
+    display a plist file
+
+    Parameters
+    ----------
+    uncolored : -u, --uncolored
+        remove colors
+    """
+    with open(filename, 'rb') as f:
+        return _pretty_json(plistlib.load(f), colored=(not uncolored))
+
+
+def _subprocess(args: list[str]) -> None:
+    subprocess.Popen(args, shell=True)
+
+
+def _pycharm(args) -> None:
     if 1 != os.system('where pycharm.rc >nul 2>&1'):
         _subprocess(['pycharm.rc', *args])
     elif 1 != os.system('where pycharm >nul 2>&1'):
         _subprocess(['pycharm', *args])
 
 
-def _webstorm(args):
-    if 1 != os.system('where webstorm >nul 2>&1'):
-        _subprocess(['webstorm', *args])
-
-
-def _clion(args):
+def _clion(args) -> None:
     if 1 != os.system('where clion >nul 2>&1'):
         _subprocess(['clion', *args])
+
+
+def _webstorm(args) -> None:
+    if 1 != os.system('where webstorm >nul 2>&1'):
+        _subprocess(['webstorm', *args])
 
 
 def _datagrip(args):
     if 1 != os.system('where datagrip >nul 2>&1'):
         _subprocess(['datagrip', *args])
 
+
+def _tarsplit(dirname: str):
+    """
+    archives given directory and splits into out
+    """
+    dirname = Path(dirname)
+
+    if not dirname.is_dir():
+        print(f'{dirname} is not a directory')
+        return 1
+
+    tarfile = f'{dirname}.tar'
+
+    local['tar']['-cvf', tarfile, dirname] & FG
+    prefix = f'{dirname}_part_'
+    local['split']['-b', '3G', str(tarfile), str(prefix)] & FG
+
+
+def _open_github(args):
+    try:
+        import webbrowser
+        from pathlib import Path
+
+        # Ensure we're inside a Git repo
+        root = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], text=True).strip()
+        os.chdir(root)
+
+        # Get current remote URL
+        remote_url = subprocess.check_output(['git', 'remote', 'get-url', 'origin'], text=True).strip()
+
+        # Get current branch name
+        branch = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], text=True).strip()
+
+        # Parse remote URL
+        if remote_url.startswith('git@'):
+            # git@github.com:user/repo.git
+            _, path = remote_url.split(':', 1)
+            url = f'https://github.com/{path}'
+        elif remote_url.startswith('https://') or remote_url.startswith('http://'):
+            url = remote_url
+        else:
+            print(f"Unsupported remote URL: {remote_url}")
+            return
+
+        url = url.rstrip('.git')
+        url += f'/tree/{branch}'
+        webbrowser.open(url)
+    except subprocess.CalledProcessError:
+        print('Not a git repository or no remote "origin" set.')
+    except Exception as e:
+        print(f'Error: {e}')
+
+
+def _tab_color_completer(xsh, action, completer, alias, command):
+    return TAB_COLORS.keys()
+
+
+def _tab_color(color: Annotated[str, Arg(completer=_tab_color_completer)]) -> None:
+    "Change current tab color"
+    if color not in TAB_COLORS:
+        print(f"Not a valid color. Must be one of: {TAB_COLORS.keys()}")
+        return
+    subprocess.Popen(['wt', '--tabColor', TAB_COLORS[color]])
+
+
+def _pull_history(args) -> None:
+    cnt = XSH.history.pull(show_commands=False)
+    print(f'Pulled {cnt} new commands from other sessions.')
+
+
 # -- xonsh
 
-XSH.aliases['open'] = 'explorer'
 XSH.aliases['reload'] = 'source ~/.xonshrc'
 XSH.aliases['globalrc'] = 'code ~/.xonshrc'
+XSH.aliases['localrc'] = f'code {CUSTOM_RC}'
 XSH.aliases['rcpull'] = _rcpull
 XSH.aliases['rcpush'] = _rcpush
+
+# -- apps
+
+XSH.aliases['dg'] = _datagrip
+XSH.aliases['ws'] = _webstorm
+XSH.aliases['clion'] = _clion
+XSH.aliases['charm'] = _pycharm
 
 # -- git
 
@@ -271,15 +405,26 @@ XSH.aliases['gd'] = 'git diff'
 XSH.aliases['gst'] = 'git status'
 XSH.aliases['gcl'] = 'git clone --recurse-submodules'
 
-# -- apps
+# -- terminal
 
-XSH.aliases['ws'] = _webstorm
-XSH.aliases['dg'] = _datagrip
-XSH.aliases['clion'] = _clion
-XSH.aliases['charm'] = _pycharm
+XSH.aliases['tab-color'] = ArgParserAlias(prog="tab-color", has_args=True, func=_tab_color)
 
 # -- shell
 
+XSH.aliases['t'] = 'tree'
+XSH.aliases['l'] = 'ls -lah'
+XSH.aliases['la'] = 'ls -lAh'
+XSH.aliases['ll'] = 'ls -lh'
+XSH.aliases['ls'] = 'ls -FG'
+XSH.aliases['lsa'] = 'ls -lah'
+XSH.aliases['grt'] = lambda: os.chdir($(git rev-parse --show-toplevel).strip())
+XSH.aliases['grep'] = 'grep --line-buffered'
+XSH.aliases['vox'] = 'uvox'
+XSH.aliases['pull-history'] = _pull_history
+
+# -- shell windows
+
+XSH.aliases['open'] = 'explorer'
 XSH.aliases['ls'] = 'coreutils ls -FG'
 XSH.aliases['mv'] = 'coreutils mv'
 XSH.aliases['tail'] = 'coreutils tail'
@@ -365,12 +510,21 @@ XSH.aliases['unlink'] = 'coreutils unlink'
 XSH.aliases['vdir'] = 'coreutils vdir'
 XSH.aliases['wc'] = 'coreutils wc'
 XSH.aliases['whoami'] = 'coreutils whoami'
-
-XSH.aliases['t'] = 'tree'
-XSH.aliases['l'] = 'ls -lah'
-XSH.aliases['la'] = 'ls -lAh'
-XSH.aliases['ll'] = 'ls -lh'
-XSH.aliases['lsa'] = 'ls -lah'
-XSH.aliases['grt'] = lambda: os.chdir($(git rev-parse --show-toplevel).strip())
-
 XSH.aliases['start'] = 'cmd /c start'
+
+# -- npm
+
+XSH.env['PNPM_HOME'] = os.path.expanduser('~/.local/share/pnpm')
+if XSH.env['PNPM_HOME'] not in XSH.env['PATH']:
+    XSH.env['PATH'].insert(0, XSH.env['PNPM_HOME'])
+
+XSH.aliases['np'] = 'npm'
+XSH.aliases['pn'] = 'pnpm'
+
+# -- tools
+
+XSH.aliases['plshow'] = ArgParserAlias(prog='plshow', has_args=True, func=_plshow)
+XSH.aliases['tarsplit'] = ArgParserAlias(prog='tarsplit', has_args=True, func=_tarsplit)
+
+if CUSTOM_RC.exists():
+    XSH.builtins.execx(f'source -e {CUSTOM_RC}')

@@ -4,3 +4,4 @@ plumbum
 inquirer3
 jedi
 requests
+typer
