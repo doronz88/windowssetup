@@ -19,7 +19,6 @@ from plumbum.commands.processes import ProcessExecutionError
 from prompt_toolkit.application import run_in_terminal
 from prompt_toolkit.keys import Keys
 from pygments import highlight, formatters, lexers
-from pygments.style import Style
 from pygments.token import (
     Comment, Error, Generic, Name, Number, Operator, String, Text, Whitespace, Keyword, Literal, Other, Punctuation
 )
@@ -27,7 +26,6 @@ from xonsh.ansi_colors import register_custom_ansi_style
 from xonsh.built_ins import XSH
 from xonsh.cli_utils import ArgParserAlias, Arg, Annotated
 from xonsh.events import events
-from xonsh.history.sqlite import SqliteHistory
 from xonsh.pyghooks import register_custom_pygments_style
 from xonsh.tools import unthreadable
 
@@ -247,27 +245,25 @@ def _ggpush(args) -> None:
     XSH.builtins.execx(f'git push origin {XSH.env["PROMPT_FIELDS"]["curr_branch"]()} {shlex.join(args)}')
 
 
-def _rcpull(args) -> None:
+def _rcpull(args):
     parser = ArgumentParser(description='pull latest .xonshrc')
     args = parser.parse_args(args)
-
-    XSH.builtins.execx("cd $WORKSETUP_ROOT/windowssetup")
-    XSH.builtins.execx("ggpull")
-    XSH.builtins.execx("cp .xonshrc ~/")
-    XSH.builtins.execx("cd -")
-    XSH.builtins.execx("reload")
+    cd $WORKSETUP_ROOT/windowssetup
+    ggpull
+    cp .xonshrc ~/
+    cd -
 
 
-def _rcpush(args) -> None:
+def _rcpush(args):
     parser = ArgumentParser(description='push latest .xonshrc')
     args = parser.parse_args(args)
 
-    XSH.builtins.execx("cd $WORKSETUP_ROOT/windowssetup")
-    XSH.builtins.execx("cp ~/.xonshrc .")
-    XSH.builtins.execx("ga .xonshrc")
-    XSH.builtins.execx("git commit -m 'update .xonshrc'")
-    XSH.builtins.execx("ggpush")
-    XSH.builtins.execx("cd -")
+    cd $WORKSETUP_ROOT/worksetup
+    cp ~/.xonshrc .
+    ga .xonshrc
+    git commit -m 'update .xonshrc'
+    ggpush
+    cd -
 
 
 def _plshow(filename: str, uncolored=False):
