@@ -42,10 +42,10 @@ XSH.env[
     'PROMPT'] = '{env_name}{BOLD_GREEN}{user}@{hostname}{BOLD_BLUE} {cwd}{branch_color}{curr_branch: {}}{RESET} {BOLD_BLUE}{prompt_end}{RESET} '
 XSH.env['GIT_EXTERNAL_DIFF'] = 'difft'
 
-XSH.env['fzf_history_binding'] = "c-r"  # Ctrl+R
-XSH.env['fzf_ssh_binding'] = "c-s"  # Ctrl+S
-XSH.env['fzf_file_binding'] = "c-t"  # Ctrl+T
-XSH.env['fzf_dir_binding'] = "c-g"  # Ctrl+G
+XSH.env['fzf_history_binding'] = 'c-r'  # Ctrl+R
+XSH.env['fzf_ssh_binding'] = 'c-s'  # Ctrl+S
+XSH.env['fzf_file_binding'] = 'c-t'  # Ctrl+T
+XSH.env['fzf_dir_binding'] = 'c-g'  # Ctrl+G
 
 # The SQLite history backend saves command immediately
 # unlike JSON backend that save the commands at the end of the session.
@@ -169,19 +169,19 @@ PG_STYLE = {
 
 register_custom_pygments_style('doronz', PG_STYLE, background_color=BG_COLOR)
 register_custom_ansi_style('doronz', ANSI_STYLE)
-XSH.env['XONSH_COLOR_STYLE'] = 'doronz'
+XSH.env["XONSH_COLOR_STYLE"] = 'doronz'
 
 TAB_COLORS = {
-    "red": '#FF9999',
-    "green": '#99E699',
-    "blue": '#99B3FF',
-    "yellow": '#FFE599',
-    "purple": '#CC99FF',
-    "gray": '#C2C2C2',
-    "black": '#666666',
-    "orange": '#FFB899',
-    "pink": '#FFB3DE',
-    "teal": '#99E6E6',
+    'red': '#FF9999',
+    'green': '#99E699',
+    'blue': '#99B3FF',
+    'yellow': '#FFE599',
+    'purple': '#CC99FF',
+    'gray': '#C2C2C2',
+    'black': '#666666',
+    'orange': '#FFB899',
+    'pink': '#FFB3DE',
+    'teal': '#99E6E6',
 }
 
 
@@ -193,10 +193,10 @@ def custom_keybindings(bindings, **kw):
     def restart_device(event):
         def _run():
             subprocess.run(
-                shlex.split("pymobiledevice3 diagnostics restart"),
+                shlex.split('pymobiledevice3 diagnostics restart'),
                 check=False,
             )
-            print("\nRestarting device", flush=True)
+            print('\nRestarting device', flush=True)
 
         # Give the terminal to the subprocess (fixes Enter / stdin issues)
         run_in_terminal(_run)
@@ -213,11 +213,11 @@ def expand_braces(cmd, **a):
     requires_expansion = False
 
     for part in parts:
-        if "{" in part and "}" in part:
-            prefix, braces, postfix = part.partition("{")
-            options, _, postfix = postfix.partition("}")
+        if '{' in part and '}' in part:
+            prefix, braces, postfix = part.partition('{')
+            options, _, postfix = postfix.partition('}')
             expanded_parts = [
-                prefix + option + postfix for option in options.split(",")
+                prefix + option + postfix for option in options.split(',')
             ]
             expanded_cmds.extend(expanded_parts)
             requires_expansion = True
@@ -225,7 +225,7 @@ def expand_braces(cmd, **a):
             expanded_cmds.append(part)
 
     if requires_expansion:
-        return " ".join(expanded_cmds)
+        return ' '.join(expanded_cmds)
 
     return cmd
 
@@ -272,7 +272,7 @@ def _plshow(filename: str, uncolored=False):
 
     Parameters
     ----------
-    uncolored : -u, --uncolored
+    uncolored: -u, --uncolored
         remove colors
     """
     with open(filename, 'rb') as f:
@@ -307,7 +307,7 @@ def _datagrip(args):
 
 def _tarsplit(dirname: str):
     """
-    archives given directory and splits into out
+    archives a given directory and splits into out
     """
     dirname = Path(dirname)
 
@@ -345,7 +345,7 @@ def _open_github(args):
         elif remote_url.startswith('https://') or remote_url.startswith('http://'):
             url = remote_url
         else:
-            print(f"Unsupported remote URL: {remote_url}")
+            print(f'Unsupported remote URL: {remote_url}')
             return
 
         url = url.rstrip('.git')
@@ -362,9 +362,8 @@ def _tab_color_completer(xsh, action, completer, alias, command):
 
 
 def _tab_color(color: Annotated[str, Arg(completer=_tab_color_completer)]) -> None:
-    "Change current tab color"
     if color not in TAB_COLORS:
-        print(f"Not a valid color. Must be one of: {TAB_COLORS.keys()}")
+        print(f'Not a valid color. Must be one of: {TAB_COLORS.keys()}')
         return
     subprocess.Popen(['wt', '--tabColor', TAB_COLORS[color]])
 
@@ -403,7 +402,7 @@ XSH.aliases['gcl'] = 'git clone --recurse-submodules'
 
 # -- terminal
 
-XSH.aliases['tab-color'] = ArgParserAlias(prog="tab-color", has_args=True, func=_tab_color)
+XSH.aliases['tab-color'] = ArgParserAlias(prog='tab-color', has_args=True, func=_tab_color)
 
 # -- shell
 
